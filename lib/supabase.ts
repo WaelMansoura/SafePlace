@@ -2,11 +2,18 @@ import 'react-native-url-polyfill/auto'
 
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
+import { AppState } from 'react-native'
 
-const supabaseUrl = "https://xbilvfajrksachkycoui.supabase.co"
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiaWx2ZmFqcmtzYWNoa3ljb3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM1NjI3NjAsImV4cCI6MjAyOTEzODc2MH0.dqdphDmkwIXvAKMZKJ0fqkhiq54NIsRHgGAkskDAoEA"
+import { Database } from '@/lib/database'
 
-import { Database } from "@/lib/database"
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Configuration Supabase manquante : renseignez EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY dans le fichier .env (voir .env.example)."
+  )
+}
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -15,4 +22,14 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+})
+
+// Rafraîchit la session uniquement quand l'app est au premier plan.
+// Enregistré une seule fois, au chargement du module.
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh()
+  } else {
+    supabase.auth.stopAutoRefresh()
+  }
 })

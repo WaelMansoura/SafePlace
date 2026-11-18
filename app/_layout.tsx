@@ -1,5 +1,3 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,13 +5,8 @@ import { useEffect } from 'react';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { UserContextProvider } from "../contexts/user.context"
-import { useUserContext } from '../contexts/user.context';
-import { ReportProvider, useReport } from '@/contexts/report.context';
-import Loading from '@/components/Loading';
-import { LogBox } from 'react-native';
-
-LogBox.ignoreAllLogs(true);
+import { UserContextProvider } from '@/contexts/user.context';
+import { ReportProvider } from '@/contexts/report.context';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -62,13 +55,6 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-
-  const { isLoading, isLoggedIn } = useUserContext();
-
-  // if(isLoading){
-  //   return <Loading/>
-  // }
-
   return (
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false, }} />
@@ -123,7 +109,7 @@ function RootLayoutNav() {
         
         />
         <Stack.Screen name="(modals)/NumerosDurgences" options={{
-            title:'Chosissez un numéro',
+            title:'Choisissez un numéro',
             headerTitleStyle: {
               fontFamily: 'mon-b'
             },

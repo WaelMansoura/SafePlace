@@ -1,16 +1,8 @@
-import React, { useEffect } from 'react'
-
-import { router } from 'expo-router'
-import { View, Text } from 'react-native'
-
+import React from 'react'
 import { Tabs } from 'expo-router'
-import { isLoaded } from 'expo-font'
-
-import { Feather, Ionicons, FontAwesome6, MaterialIcons } from '@expo/vector-icons'
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons'
 
 import Colors from '@/constants/Colors'
-
-import { Database } from '@/lib/database'
 
 const Layout = () => {
 

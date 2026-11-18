@@ -1,6 +1,5 @@
-import { View, Text, Touchable, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import React from "react";
-import { router } from "expo-router";
 import { Fontisto, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "@/constants/Colors";
 import { Link } from "expo-router";

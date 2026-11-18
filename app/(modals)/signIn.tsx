@@ -2,7 +2,6 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityInd
 import React, { useState } from 'react'
 import Colors from '@/constants/Colors'
 import { defaultStyles } from '@/constants/Styles'
-import { Entypo, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useUserContext } from '@/contexts/user.context'
 import { router } from 'expo-router'
 
@@ -14,14 +13,16 @@ const signIn = () => {
     const [loading, setLoading] = useState(false);
     const [nom, setNom] = useState('');
     const [prenom, setPrenom] = useState('');
-    const formIsFull = !!(email && password && nom && prenom)
+    const MIN_PASSWORD_LENGTH = 7;
+    const formIsFull = !!(email.trim() && password.length >= MIN_PASSWORD_LENGTH && nom.trim() && prenom.trim())
     const signupClick = async () => {
+        if (loading) return;
         setLoading(true);
         try {
-            await signup({ email, password, nom, prenom });
-         router.back()
-        } catch (error) {
-            console.error("Erreur lors de l'inscription:", error);
+            await signup({ email: email.trim(), password, nom: nom.trim(), prenom: prenom.trim() });
+            router.back()
+        } catch (error: any) {
+            Alert.alert("Inscription impossible", error?.message ?? "Une erreur est survenue, réessayez.");
         } finally {
             setLoading(false);
         }
@@ -42,18 +43,14 @@ const signIn = () => {
 
                 <Text style={{ fontFamily: 'mon-b', color: Colors.grey }} >Adresse Mail</Text>
                 <TextInput
-                keyboardType='email-address' textContentType='emailAddress'  
+                keyboardType='email-address' textContentType='emailAddress' autoCapitalize='none'
                     onChangeText={(text) => setEmail(text)}
                     placeholder='E-mail' style={[defaultStyles.inputField, { height: 44, fontFamily: 'mon', }]} placeholderTextColor={Colors.grey} />
 
                 <Text style={{ fontFamily: 'mon-b', color: Colors.grey }} >Mot de passe</Text>
                 <TextInput
                     secureTextEntry={true}
-                    onChangeText={(text) => { 
-                        if(text.length>7 ){setPassword(text)}
-                            else {setPassword('')}
-
-                    }}
+                    onChangeText={setPassword}
                     placeholder='Saisissez 7 caractères au min.' style={[defaultStyles.inputField, { height: 44, fontFamily: 'mon', }]} textContentType='password' placeholderTextColor={Colors.grey} />
                 <TouchableOpacity
                     style={
@@ -65,16 +62,13 @@ const signIn = () => {
                         
                         
                         
+                    disabled={loading}
                     onPress={() => {
                         formIsFull ? 
                         signupClick() 
                         :Alert.alert(
-                            `Formulair incomplet`,
-                            `Veuillez remplir tout les champs \n (Mot de passe min. 7 caractères)`,
-                            [
-                                { text: 'OK', onPress: () => console.log('OK appuyé') }
-                            ],
-                            { cancelable: false }
+                            `Formulaire incomplet`,
+                            `Veuillez remplir tous les champs \n (Mot de passe min. 7 caractères)`,
                         );
                     }}>
                     <Text style={[defaultStyles.btnText]}>{loading?'Chargement ...': 'Continuer'}</Text>

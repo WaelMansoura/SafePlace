@@ -1,102 +1,73 @@
-import { View, Text, TouchableOpacity } from 'react-native'
-import React, { useState } from 'react'
-import { FontAwesome } from '@expo/vector-icons'
-import { AntDesign } from '@expo/vector-icons';
-import { defaultStyles } from '@/constants/Styles';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native'
+import React from 'react'
+import { FontAwesome, AntDesign } from '@expo/vector-icons'
 import * as ImagePicker from "expo-image-picker"
 import { router } from 'expo-router';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+
+import { defaultStyles } from '@/constants/Styles';
 import Colors from '@/constants/Colors';
-import { StyleSheet } from 'react-native';
-import { Image } from 'react-native';
 import { useReport } from '@/contexts/report.context';
-import * as FileSystem from 'expo-file-system';
-import { supabase } from '@/lib/supabase';
-import { useUserContext } from '@/contexts/user.context';
-import { Button } from 'react-native-elements';
-import { useRouter } from 'expo-router';
-import Animated, {
-    FadeIn,
-    FadeOut,
-    SlideInDown,
-    interpolate,
-    useAnimatedRef,
-    useAnimatedStyle,
-    useScrollViewOffset,
-} from 'react-native-reanimated';
 
 const importPic = () => {
     const { image, setImage } = useReport();
-    const { user } = useUserContext()
-    const saveImage = async (image: string) => {
-        try {
-            setImage(image)
 
-        } catch (error) {
-            throw error
-        }
-    }
-    const uploadImage = async () => {
+    const takePhoto = async () => {
         try {
-            await ImagePicker
-            await ImagePicker.requestCameraPermissionsAsync();
-            let result = await ImagePicker.launchCameraAsync({
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert("Permission refusée", "Autorisez l'accès à l'appareil photo dans les réglages pour prendre une photo.");
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
                 cameraType: ImagePicker.CameraType.back,
                 aspect: [1, 1],
                 quality: 0.8,
             })
             if (!result.canceled) {
-
-                if (!result.canceled) {
-                    await saveImage(result.assets[0].uri);
-                }
+                setImage(result.assets[0].uri);
             }
-        } catch (error) {
-            alert("Erreur lors de l'import")
-  
+        } catch {
+            Alert.alert("Erreur", "Erreur lors de la prise de photo");
         }
     }
 
-    const uploadImageFromGallery = async () => {
+    const pickFromGallery = async () => {
         try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert("Permission refusée", "Autorisez l'accès à la galerie dans les réglages pour importer une image.");
+                return;
+            }
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
-                aspect: [1, 3],
+                aspect: [1, 1],
                 quality: 0.8,
             })
             if (!result.canceled) {
-                await saveImage(result.assets[0].uri);
+                setImage(result.assets[0].uri);
             }
-        } catch (error) {
-            await alert("Erreur lors de l'import")
-        } finally {
-            router.back()
+        } catch {
+            Alert.alert("Erreur", "Erreur lors de l'import");
         }
     }
 
-
-    const removeImage = async () => {
-        try {
-            setImage(null)
-        } catch (error) {
-            throw error
-        }
-    }
     return (
         <View style={[defaultStyles.container, { padding: 24,  }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <TouchableOpacity style={styles.btn} onPress={() => uploadImage()}>
+                <TouchableOpacity style={styles.btn} onPress={takePhoto}>
                     <FontAwesome name="camera" size={24} color="black" />
                     <Text style={{ fontFamily: 'mon-sb', color: 'black', fontSize: 15 }}>Camera</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.btn} onPress={() => uploadImageFromGallery()}>
+                <TouchableOpacity style={styles.btn} onPress={pickFromGallery}>
                     <AntDesign name="picture" size={24} color="black" />
-                    <Text style={{ fontFamily: 'mon-sb', color: 'black', fontSize: 15 }}>Gallerie</Text>
+                    <Text style={{ fontFamily: 'mon-sb', color: 'black', fontSize: 15 }}>Galerie</Text>
                 </TouchableOpacity>
             </View>
 
             <TouchableOpacity
-                onPress={() => { removeImage() }}
+                onPress={() => setImage(null)}
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',

@@ -1,6 +1,5 @@
 import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import { defaultStyles } from '@/constants/Styles'
 import ListItem from '@/components/ListItem'
 interface Instruction {
   beforeColon: string;
@@ -179,6 +178,7 @@ const instructions = () => {
     <SafeAreaView style={styles.container}>
       <FlatList 
       data={groupeiInstruction}
+      keyExtractor={(item) => String(item.id)}
       renderItem={renderItem}
       />
     </SafeAreaView>

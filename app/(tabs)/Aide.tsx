@@ -1,35 +1,9 @@
-import { View, Text, Touchable, TouchableOpacity } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
-import { useRouter } from 'expo-router';
-import Loading from '@/components/Loading'
 import { defaultStyles } from '@/constants/Styles';
-import { StyleSheet } from 'react-native';
 import Colors from '@/constants/Colors';
-import { Feather, FontAwesome5, FontAwesome6, Fontisto, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Feather, Fontisto, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-interface NumerosUrgence {
-  [service: string]: string;
-}
-
-const numerosUrgenceAlgerie: NumerosUrgence = {
-  Police: '17',
-  Pompiers: '14',
-  SAMU: '15',
-  'Gendarmerie nationale': '1055',
-  'Sécurité routière': '1548',
-  'Numéro vert anti-drogue': '11-41',
-  'Numéro vert anti-corruption': '16-16',
-  'Numéro vert pour les enfants disparus': '116-000',
-  'Protection civile': '14',
-  'Pharmacie de garde': '1737',
-  'Electricité et gaz': '32-24',
-  'Algérie Télécom': '12',
-  'Sonelgaz': '33-03',
-  'Algérie Poste': '15-05',
-  'Eau et Assainissement': '1594',
-};
-
 const Aide = () => {
   
   return (

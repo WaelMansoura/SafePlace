@@ -1,38 +1,24 @@
-import useSWR from 'swr';
+import useSWR, { mutate as globalMutate } from 'swr';
 import axios from 'axios';
 import ToggleSwitch from 'toggle-switch-react-native';
 
 import { ScrollView } from 'react-native';
-import { MaterialIcons, Entypo } from '@expo/vector-icons';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
+import { MaterialIcons, Entypo, AntDesign } from '@expo/vector-icons';
+import React, { useLayoutEffect, useState } from 'react';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-    SlideInDown,
-    SlideInRight,
-    SlideOutDown,
-    interpolate,
-    useAnimatedRef,
-    useAnimatedStyle,
-    useScrollViewOffset,
-} from 'react-native-reanimated';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 
-import { Database } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 
 import Colors from '@/constants/Colors';
 import { defaultStyles } from '@/constants/Styles';
 
-import { IncidentType } from '@/interfaces/incident.type';
-
-import { useReport } from '@/contexts/report.context';
 import { useUserContext } from '@/contexts/user.context';
 
 import Loading from '@/components/Loading';
-
-const widthWindow = Dimensions.get('window');
 
 const IMG_HEIGHT = 300;
 
@@ -44,13 +30,17 @@ const DetailPage = () => {
     const { role, isLoggedIn, user } = useUserContext()
 
     const [address, setAddress] = useState('');
-    const [IsUpdated, setIsUpdated] = useState(false);
-    const [IsVoteUpdated, setIsVoteUpdated] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isVoting, setIsVoting] = useState(false);
     const [isImageLoaded, setIsImageLoaded] = useState(false);
 
     //GeoCoding Inversé
     const getAddressFromCoordinates = async (latitude: number, longitude: number) => {
-        const apiKey = '1a657ce413eb40a990ee9d9566876043';
+        const apiKey = process.env.EXPO_PUBLIC_OPENCAGE_API_KEY;
+        if (!apiKey) {
+            setAddress('');
+            return;
+        }
         const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
 
         try {
@@ -60,11 +50,10 @@ const DetailPage = () => {
             } else {
                 setAddress('Aucune adresse trouvée');
             }
-        } catch (error) {
-            console.error(error);
+        } catch {
             setAddress('');
         }
-    };//
+    };
 
     const { data: incident, isLoading, error, mutate } = useSWR(`/incidents/${incidentId}?extend=type_id&extend=auteur_id&extend=votes`, async () => {
         const response = await supabase.from('incidents').select(`
@@ -100,74 +89,88 @@ const DetailPage = () => {
     }
 
     if (error || !incident) {
-        console.log('[erreur]:', error);
         return (
-            <Loading />
+            <View style={styles.errorView}>
+                <AntDesign name="warning" size={40} color={Colors.red} />
+                <Text style={{ color: Colors.red, fontFamily: 'mon-b' }}>Impossible de charger cet incident</Text>
+                <TouchableOpacity onPress={() => mutate()}>
+                    <Text style={{ color: Colors.grey, fontFamily: 'mon-sb' }}>Réessayer</Text>
+                </TouchableOpacity>
+            </View>
         )
     }
 
     const toggleVerif = async (newValue: boolean) => {
 
-        setIsUpdated(true);
+        setIsUpdating(true);
 
         const { error } = await supabase.from('incidents')
             .update({
                 est_verifier: newValue
             }).eq("id", incidentId);
 
-        setIsUpdated(false)
+        setIsUpdating(false);
 
         if (error) {
-            console.log("[error]:", error);
+            Alert.alert("Erreur", "Impossible de modifier l'état de vérification.");
             return;
-        } else {
-            await mutate({
-                ...incident,
-                est_verifier: newValue
-            });
         }
+
+        await mutate({
+            ...incident,
+            est_verifier: newValue
+        }, false);
+        // Le fil et le compte affichent aussi l'état de vérification.
+        globalMutate((key) => typeof key === 'string' && key.startsWith('incidents'));
     }
 
-    const voteAction = async (value: number) => {
-        setIsVoteUpdated(false);
+    const voteAction = async (value: 1 | -1) => {
+        if (!user || isVoting) return;
+        setIsVoting(true);
         try {
             const { data: vote, error } = await supabase
                 .from('incidents_vote') 
                 .insert({
-                    auteur_id: user!.id,   
-                    incident_id: incidentId,       
-                    vote: value,           
+                    auteur_id: user.id,
+                    incident_id: incidentId,
+                    vote: value,
                 }).select("*").single();
 
             if (error) {
-                console.error('Erreur lors de l\'insertion du vote :', error);
-            } else {
-                console.log('Vote inséré avec succès :', vote);
-                await mutate({
-                    ...incident,
-                    votes: [...incident.votes, vote]
-                }, false); 
+                Alert.alert("Erreur", "Votre vote n'a pas pu être enregistré.");
+                return;
             }
-        } catch (error) {
-            console.error('Erreur inattendue :', error);
+
+            await mutate({
+                ...incident,
+                votes: [...incident.votes, vote]
+            }, false);
+            globalMutate((key) => typeof key === 'string' && (key.startsWith('incidents') || key.startsWith('votes')));
+        } catch {
+            Alert.alert("Erreur", "Votre vote n'a pas pu être enregistré.");
         } finally {
-            setIsVoteUpdated(true);
+            setIsVoting(false);
         }
     };
 
-
-
-
-
-    const hasUserVoted = incident.votes.find((vote) => vote.auteur_id === user?.id);
+    const hasUserVoted = incident.votes.some((vote) => vote.auteur_id === user?.id);
+    const imageUri = incident.attachement?.[0];
+    const auteur = incident.auteur as { nom?: string | null; prenom?: string | null } | null;
 
     return (
         <View style={styles.container}>
             <ScrollView>
                 <View>
-                    <Image onLoadEnd={() => setIsImageLoaded(true)} style={styles.image} source={{ uri: incident.attachement![0] }} />
-
-                    {!isImageLoaded && <ActivityIndicator style={styles.activityIndicator} size={'large'} color={Colors.grey} />}
+                    {imageUri ? (
+                        <>
+                            <Image onLoadEnd={() => setIsImageLoaded(true)} style={styles.image} source={{ uri: imageUri }} />
+                            {!isImageLoaded && <ActivityIndicator style={styles.activityIndicator} size={'large'} color={Colors.grey} />}
+                        </>
+                    ) : (
+                        <View style={[styles.image, styles.noImage]}>
+                            <MaterialIcons name="image-not-supported" size={50} color={Colors.grey} />
+                        </View>
+                    )}
                 </View>
                 <View style={styles.infoContainer}>
                     <Text style={styles.name}>{incident.titre}</Text>
@@ -182,7 +185,7 @@ const DetailPage = () => {
                         <MaterialIcons style={{}} name="verified" size={40} color={incident.est_verifier ? Colors.blue : Colors.grey} />
 
                         <View >
-                            <Text style={{ fontWeight: '500', fontSize: 16, fontFamily: 'mon-sb' }}>Crée par {(incident.auteur as any).nom ? (incident.auteur as any).nom + " " + (incident.auteur as any).prenom : '...'}
+                            <Text style={{ fontWeight: '500', fontSize: 16, fontFamily: 'mon-sb' }}>Créé par {auteur?.nom ? `${auteur.nom} ${auteur.prenom ?? ''}` : '...'}
                             </Text>
 
 
@@ -197,7 +200,7 @@ const DetailPage = () => {
                     </View>
 
                     <View style={styles.divider} />
-                    <Text style={styles.description}>{incident.description}</Text>
+                    <Text style={styles.description}>{incident.description ?? ''}</Text>
 
                 </View>
             </ScrollView>
@@ -210,7 +213,7 @@ const DetailPage = () => {
                             <Text style={{ fontFamily: 'mon-b', fontSize: 15 }}>Changer l'état de vérification ?</Text>
                             <ToggleSwitch
                                 isOn={incident.est_verifier}
-                                disabled={IsUpdated}
+                                disabled={isUpdating}
                                 onColor={Colors.blue}
                                 offColor={Colors.grey}
                                 size="medium"
@@ -224,11 +227,13 @@ const DetailPage = () => {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',  }}>
                             <Text style={{ fontFamily: 'mon-b', fontSize: 15 }}>Trouvez-vous cet article utile/fiable ?</Text>
                             <TouchableOpacity style={{ paddingHorizontal: 2 }}
-                                onPress={() => voteAction(1)}
+                                disabled={isVoting}
+                                onPress={() => voteAction(-1)}
                             >
                                 <Entypo name="arrow-with-circle-down" size={40} color={Colors.red} />
                             </TouchableOpacity>
                             <TouchableOpacity
+                                disabled={isVoting}
                                 onPress={() => voteAction(1)}
                                 style={{ paddingHorizontal: 2 }}>
                                 <Entypo name="arrow-with-circle-up" size={40} color={Colors.blue} />
@@ -239,7 +244,7 @@ const DetailPage = () => {
                     {(hasUserVoted && (role === 'USER')) && (
 
                         <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                            <Text style={{ fontFamily: 'mon-b', fontSize: 15 }}>Vous avez déja voter !</Text>
+                            <Text style={{ fontFamily: 'mon-b', fontSize: 15 }}>Vous avez déjà voté !</Text>
                         </View>
 
                     )}
@@ -319,6 +324,18 @@ const styles = StyleSheet.create({
         position: 'absolute',
         alignSelf: 'center',
         top: '50%',
+    },
+    noImage: {
+        backgroundColor: '#eee',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    errorView: {
+        flex: 1,
+        backgroundColor: 'white',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
     },
 });
 

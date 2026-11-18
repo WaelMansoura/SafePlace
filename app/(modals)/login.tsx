@@ -1,25 +1,9 @@
 import React, { useState } from 'react'
-import { Alert, StyleSheet, View, AppState, ActivityIndicator } from 'react-native'
-import { supabase } from '@/lib/supabase'
+import { Alert, StyleSheet, View, ActivityIndicator, Text, TextInput, TouchableOpacity } from 'react-native'
 import Colors from '@/constants/Colors'
-import { TouchableOpacity } from 'react-native'
-import { Text } from 'react-native-elements'
-import { TextInput } from 'react-native'
 import { defaultStyles } from '@/constants/Styles'
 import { useUserContext } from '@/contexts/user.context'
 import { router } from 'expo-router'
-
-// Tells Supabase Auth to continuously refresh the session automatically if
-// the app is in the foreground. When this is added, you will continue to receive
-// `onAuthStateChange` events with the `TOKEN_REFRESHED` or `SIGNED_OUT` event
-// if the user's session is terminated. This should only be registered once.
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh()
-  } else {
-    supabase.auth.stopAutoRefresh()
-  }
-})
 
 export default function Auth() {
   const { login } = useUserContext();
@@ -29,16 +13,22 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
 
   async function signInWithEmail() {
+    if (loading) return;
+    if (!email.trim() || !password) {
+      Alert.alert("Champs manquants", "Saisissez votre e-mail et votre mot de passe.");
+      return;
+    }
     try {
       setLoading(true);
-      const { user, profile, role } = await login({
-        email: email,
+      const { profile } = await login({
+        email: email.trim(),
         password: password,
       })
       router.back();
-      Alert.alert("Bienvenue " + profile.nom.toUpperCase() + " " + profile.prenom)
-    } catch (error: any) {
-      Alert.alert("Erreur de connexion")
+      const fullName = [profile.nom?.toUpperCase(), profile.prenom].filter(Boolean).join(' ');
+      Alert.alert(fullName ? `Bienvenue ${fullName}` : 'Bienvenue')
+    } catch {
+      Alert.alert("Erreur de connexion", "E-mail ou mot de passe incorrect.")
     } finally {
       setLoading(false)
     }
@@ -53,15 +43,16 @@ export default function Auth() {
 
       <TextInput placeholder='Password' secureTextEntry={true} onChangeText={(text) => setPassword(text)} value={password} placeholderTextColor={Colors.grey} autoCapitalize='none' style={[defaultStyles.inputField, { marginBottom: 30, fontFamily: 'mon' }]} />
       <TouchableOpacity style={[defaultStyles.btn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 }]}
+        disabled={loading}
         onPress={() => { signInWithEmail(); }}>
         {
           loading
             ?
             <>
               <ActivityIndicator color={"white"} />
-              <Text style={[defaultStyles.btnText]} disabled={loading} >Chargement ...</Text>
+              <Text style={[defaultStyles.btnText]}>Chargement ...</Text>
             </>
-            : <Text style={[defaultStyles.btnText]} disabled={loading} >Continuer</Text>
+            : <Text style={[defaultStyles.btnText]}>Continuer</Text>
         }
 
       </TouchableOpacity>

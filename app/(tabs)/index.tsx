@@ -1,19 +1,8 @@
-import { View, Text } from 'react-native'
+import { View } from 'react-native'
 import React from 'react'
 import ListingsMap from '@/components/ListingsMap'
 import ReportButton from '@/components/ReportButton'
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  SlideInDown,
-  SlideInLeft,
-  SlideInRight,
-  SlideInUp,
-  interpolate,
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollViewOffset,
-} from 'react-native-reanimated';
+import Animated, { SlideInRight } from 'react-native-reanimated';
 
 const Page = () => {
 

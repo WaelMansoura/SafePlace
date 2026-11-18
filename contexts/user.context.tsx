@@ -147,13 +147,11 @@ export const UserContextProvider = ({
     };
 
     const signup: UserContextInterface["signup"] = async (credentials) => {
-        const { nom, prenom } = credentials;
+        const { nom, prenom, ...authCredentials } = credentials;
         try {
             setIsLoading(true);
 
-            const authentication = await supabase.auth.signUp({
-                ...credentials,
-            });
+            const authentication = await supabase.auth.signUp(authCredentials);
 
             if (authentication.error || !authentication.data)
                 throw authentication.error;
@@ -164,27 +162,20 @@ export const UserContextProvider = ({
             const role_ = await getUserRoleByUserId(user_.id);
 
 
-            const updateProfileData = async (userId: string, nom: string, prenom: string) => {
-                try {
-                    const { error } = await supabase
-                        .from('users_profiles')
-                        .update({ nom, prenom })
-                        .eq('user_id', userId)
+            // Le profil est créé côté Supabase à l'inscription : on y ajoute le nom et le prénom.
+            const { error: profileError } = await supabase
+                .from('users_profiles')
+                .update({ nom, prenom })
+                .eq('user_id', user_.id);
 
-                    if (error) throw error
+            if (profileError)
+                throw profileError;
 
-                    console.log('Profile mis à jour avec succès')
-                } catch (error) {
-                    console.error('Erreur lors de la mise à jour du profil:', error)
-                }
-
-            }//
-            await updateProfileData(user_.id, nom, prenom)
             const profile_ = await getUserProfileByUserId(user_.id);
             setProfile(profile_);
             setUser(user_);
             setRole(role_);
-            setIsLoggedIn(true);//
+            setIsLoggedIn(true);
 
             return { user: user_, role: role_, profile: profile_ };
         } catch (error) {

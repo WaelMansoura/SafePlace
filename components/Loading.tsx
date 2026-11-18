@@ -16,7 +16,7 @@ const Loading = () => {
             <Text style={{
                 fontFamily: 'mon-b', color:Colors.blue
               
-            }}>En cours de chargment ...</Text>
+            }}>Chargement en cours ...</Text>
             <ActivityIndicator
                 size="large" color={Colors.blue}
             />

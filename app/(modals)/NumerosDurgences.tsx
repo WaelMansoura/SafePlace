@@ -1,9 +1,8 @@
-import { FlatList, ListRenderItem, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { FlatList, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import * as Linking from 'expo-linking';
 import { defaultStyles } from '@/constants/Styles';
-import { AntDesign, Entypo } from '@expo/vector-icons';
-import { IncidentType } from '@/interfaces/incident.type';
+import { Entypo } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 
 const NumerosDurgences = () => {
@@ -50,6 +49,7 @@ return (
         <FlatList
             
             data={numbers}
+            keyExtractor={(item) => item.institution}
             renderItem={renderRow}
         />
     </View>

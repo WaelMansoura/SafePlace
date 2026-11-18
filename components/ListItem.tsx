@@ -1,9 +1,8 @@
 import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import React, { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import Animated, { FadeIn, SlideInDown, useAnimatedStyle, withTiming } from 'react-native-reanimated'
+import Animated, { FadeIn } from 'react-native-reanimated'
 import Colors from '@/constants/Colors'
-import instructions from '@/app/(modals)/instructions'
 
 interface Instruction {
     beforeColon: string;
